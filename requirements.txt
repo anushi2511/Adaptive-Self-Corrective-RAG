@@ -1,0 +1,5 @@
+dotenv
+langchain-community
+pinecone
+sentence-transformers
+google-generativeai
