@@ -21,10 +21,10 @@ def evaluate_response(query, context, generated_response):
     }}
 
     Rules:
-    - confidence must be between 0 and 100.
-    - hallucination = true if answer contains unsupported claims.
-    - rewrite_needed = true if retrieval should be improved.
-    - Return ONLY JSON."""
+    confidence must be between 0 and 100.
+    hallucination = true if answer contains unsupported claims.
+    rewrite_needed = true if retrieval should be improved.
+    Return ONLY JSON."""
 
     try:
         evaluation = model.generate_content(prompt)
