@@ -9,6 +9,10 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+if not PINECONE_API_KEY:
+    raise ValueError(
+        "Missing PINECONE_API_KEY."
+    )
 
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -44,12 +48,17 @@ def split_docs(documents, chunk_size=500):
 
 # Upload to Pinecone
 
-def upload_chunks(chunks):
+def upload_chunks(chunks, pdf_name="document"):
+    if not chunks:
+        raise ValueError(
+            "No text chunks generated from the PDF."
+        )
+
     vectors = []
     for i, chunk in enumerate(chunks):
         embedding = embedding_model.encode(chunk).tolist()
-        uid = f"chunk_{i}"
-        metadata = {"text": chunk}
+        uid = f"{pdf_name}_{i}"
+        metadata = {"text": chunk, "source": pdf_name}
         vectors.append((uid, embedding, metadata))
 
     batch_size = 100
@@ -83,6 +92,12 @@ def retrieve(query, top_k=5):
 def ingest_docs(pdf_path):
     documents = load_docs(pdf_path)
     chunks = split_docs(documents)
-    upload_chunks(chunks)
+    if not chunks:
+        raise ValueError(
+            "Document contains no text chunks to ingest."
+        )
+    pdf_name = os.path.basename(pdf_path).split(".")[0]
+    upload_chunks(chunks, pdf_name)
     print("Document ingestion complete.")
+    return len(chunks)
 
