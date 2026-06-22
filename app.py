@@ -7,6 +7,7 @@ from app.generation import generate_response
 from app.evaluation import (
     evaluate_response,
     needs_rewrite,
+    rewrite_query,
 )
 
 st.set_page_config(
@@ -132,14 +133,146 @@ if st.button("Ask"):
         evaluation["reason"]
     )
 
+    original_confidence = evaluation["confidence"]
+
     if needs_rewrite(evaluation):
+
         st.warning(
-            "Self-correction recommended."
+            "Self-correction required."
         )
+
+        current_query = query
+        max_iterations = 2
+
+        for iteration in range(max_iterations):
+
+            with st.spinner(
+                f"Self-Correction Iteration {iteration + 1}"
+            ):
+
+                # Rewrite Query
+                rewritten_query = rewrite_query(
+                    current_query
+                )
+
+                # Retrieve New Context
+                docs = retrieve(
+                    rewritten_query
+                )
+
+                # Generate New Answer
+                result = generate_response(
+                    rewritten_query,
+                    docs
+                )
+
+                answer = result["answer"]
+                context = result["context"]
+
+                # Evaluate Again
+                evaluation = evaluate_response(
+                    rewritten_query,
+                    context,
+                    answer
+                )
+
+                current_query = rewritten_query
+
+                # Stop if confidence is acceptable
+                if not needs_rewrite(
+                    evaluation
+                ):
+                    break
+
+        st.success(
+            "Self-correction completed."
+        )
+
+        st.subheader(
+            "Self-Correction Details"
+        )
+
+        st.markdown(
+            f"""
+            **Original Query**
+
+            {query}
+
+            **Refined Query**
+
+            {current_query}
+            """
+        )
+
+        st.subheader(
+            "Confidence Improvement"
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric(
+                "Before",
+                f"{original_confidence}%"
+            )
+
+        with col2:
+            st.metric(
+                "After",
+                f"{evaluation['confidence']}%",
+                delta=
+                evaluation["confidence"]
+                - original_confidence
+            )
+
+        # Final Verified Answer
+        st.subheader(
+            "Final Verified Response"
+        )
+
+        st.write(
+            answer
+        )
+
+        # Final Evaluation Report
+        st.subheader(
+            "Final Evaluation Report"
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric(
+                "Confidence",
+                f"{evaluation['confidence']}%"
+            )
+
+        with col2:
+            st.metric(
+                "Hallucination",
+                str(
+                    evaluation["hallucination"]
+                )
+            )
+
+        with col3:
+            st.metric(
+                "Rewrite Needed",
+                str(
+                    evaluation["rewrite_needed"]
+                )
+            )
+
+        st.info(
+            evaluation["reason"]
+        )
+
     else:
+
         st.success(
             "Response accepted."
         )
+
 
     with st.expander(
         "Retrieved Context"

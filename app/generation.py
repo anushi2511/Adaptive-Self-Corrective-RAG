@@ -16,6 +16,6 @@ def build_context(query, retrieved_chunks):
 
 def generate_response(query, retrieved_chunks):
     context = build_context(query, retrieved_chunks)
-    prompt = f"Use only the following context to answer the question:\n\n{context}\n\nQuestion: {query}\nAnswer:"
+    prompt = f"Use the following context to answer the question:\n\n{context}\n\nQuestion: {query}\nAnswer:"
     response = model.generate_content(prompt)
     return {"answer": response.text, "context": context}
